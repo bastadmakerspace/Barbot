@@ -15,6 +15,8 @@ int pumpPin9 = 11;
 long int timer;
 boolean isTapping;
 boolean newMessageArrived;
+float timeRemaining;
+float readyLevel= 0;
 
 
 void setup() {
@@ -53,6 +55,9 @@ void loop() {
   
   if (isTapping) {
     // Check if any pump should be turned off
+    readyLevel = round(min(((float)millis()-(float)timer) / timeRemaining,1000)/10);
+    Serial.print("READY : ");
+    Serial.println((String)readyLevel);
     if (!atLeastOnePumpOn()) {
       isTapping = false;  
       Serial.println("DRINK READY!!!");
@@ -64,54 +69,51 @@ void loop() {
 
 void checkPumps() {
   long int elapsedTime = (millis()-timer);
-  Serial.print("IS TAPPING...");
-  Serial.println(isTapping);
-
 
   if((P1*1000) < elapsedTime){
     digitalWrite(pumpPin1, LOW);
+    if(P1on) Serial.println("PUMP 1 OFF!");
     P1on = false;
-    Serial.println("PUMP 1 OFF!");
   }
     if((P2*1000) < elapsedTime){
     digitalWrite(pumpPin2, LOW);
+    if(P2on) Serial.println("PUMP 2 OFF!");
     P2on = false;
-    Serial.println("PUMP 2 OFF!");
   }
     if((P3*1000) < elapsedTime){
     digitalWrite(pumpPin3, LOW);
+    if(P3on) Serial.println("PUMP 3 OFF!");
     P3on = false;
-    Serial.println("PUMP 3 OFF!");
   }
     if((P4*1000) < elapsedTime){
     digitalWrite(pumpPin4, LOW);
+    if(P4on) Serial.println("PUMP 4 OFF!");
     P4on = false;
-    Serial.println("PUMP 4 OFF!");
   }
     if((P5*1000) < elapsedTime){
     digitalWrite(pumpPin5, LOW);
+    if(P5on) Serial.println("PUMP 5 OFF!");
     P5on = false;
-    Serial.println("PUMP 5 OFF!");
   }
     if((P6*1000) < elapsedTime){
     digitalWrite(pumpPin6, LOW);
+    if(P6on) Serial.println("PUMP 6 OFF!");
     P6on = false;
-    Serial.println("PUMP 6 OFF!");
   }
     if((P7*1000) < elapsedTime){
     digitalWrite(pumpPin7, LOW);
+    if(P7on) Serial.println("PUMP 7 OFF!");
     P7on = false;
-    Serial.println("PUMP 7 OFF!");
   }
     if((P8*1000) < elapsedTime){
     digitalWrite(pumpPin8, LOW);
+    if(P8on) Serial.println("PUMP 8 OFF!");
     P8on = false;
-    Serial.println("PUMP 8 OFF!");
   }
     if((P9*1000) < elapsedTime){
     digitalWrite(pumpPin9, LOW);
+    if(P9on) Serial.println("PUMP 9 OFF!");
     P9on = false;
-    Serial.println("PUMP 9 OFF!");
   }
   
 }
@@ -196,6 +198,7 @@ void initRecepie() {
     P9on = true;
     Serial.println("PUMP 9 ON!");
   }
+
 }
 
 
@@ -222,6 +225,8 @@ void parseMessage(String msg) {
   P7 = doc["P7"];
   P8 = doc["P8"];
   P9 = doc["P9"];
+
+  timeRemaining = (float)(max(max(max(max(max(max(max(max(P1,P2),P3),P4),P5),P6),P7),P8),P9));
 
  
   isTapping = true;
