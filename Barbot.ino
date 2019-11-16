@@ -1,204 +1,100 @@
+
+
+// VALID MESAGE FORMATS
+// {"TYPE":"MIX","P1":1,"P2":2,"P3":3,"P4":4,"P5":5,"P6":6,"P7":7,"P8":8,"P9":30}
+// {"TYPE":"STOP"}
+
+//========================== INCLUDES ===============================================//
 #include <ArduinoJson.h>
 
-String msg;
-int P1, P2, P3, P4, P5, P6, P7, P8, P9;
-boolean P1on, P2on, P3on, P4on, P5on, P6on, P7on, P8on, P9on;
-int pumpPin1 = 3;
-int pumpPin2 = 4;
-int pumpPin3 = 5;
-int pumpPin4 = 6;
-int pumpPin5 = 7;
-int pumpPin6 = 8;
-int pumpPin7 = 9;
-int pumpPin8 = 10;
-int pumpPin9 = 11;
+//========================== DECLARATIONS ===========================================//
+int pumpPin[9] = {3, 4, 5, 6, 7, 8, 9, 10, 11};
+int pumpTime[9];
+boolean pumpActive[] = {false, false, false, false, false, false, false, false, false};
 long int timer;
 boolean isTapping;
 boolean newMessageArrived;
-float timeRemaining;
-float readyLevel= 0;
+float totalTime;
+float readyLevel = 0;
 
-
+//========================== SETUP ==================================================//
 void setup() {
   Serial.begin(9600); // opens serial port, sets data rate to 9600 bps
-  pinMode(pumpPin1, OUTPUT);
-  pinMode(pumpPin2, OUTPUT);
-  pinMode(pumpPin3, OUTPUT);
-  pinMode(pumpPin4, OUTPUT);
-  pinMode(pumpPin5, OUTPUT);
-  pinMode(pumpPin6, OUTPUT);
-  pinMode(pumpPin7, OUTPUT);
-  pinMode(pumpPin8, OUTPUT);
-  pinMode(pumpPin9, OUTPUT);
+  for (int i = 0 ; i < 9 ; i++) {
+    pinMode(pumpPin[i], OUTPUT);
+  }
   turnOffAll();
   isTapping = false;
   newMessageArrived = false;
 }
 
-
+//========================== LOOP ===================================================//
 void loop() {
   // Wait for command from PI
   while (Serial.available()) {
-    msg = Serial.readString(); // read the incoming data as string
-    Serial.print("Recieved message : ");
-    Serial.println(msg);
+    String msg = Serial.readString(); // read the incoming data as string
+    Serial.println("{\"msg\" : \"command recieved\"}");
     parseMessage(msg);
   }
-
+  // Initiate pumps if recepie arrived
   if (newMessageArrived) {
-    // Initiate new recepie from json
-    // turnOffAll();
     initRecepie();
-    timer = millis();
     newMessageArrived = false;
   }
-  
   if (isTapping) {
     // Check if any pump should be turned off
-    readyLevel = round(min(((float)millis()-(float)timer) / timeRemaining,1000)/10);
-    Serial.print("READY : ");
-    Serial.println((String)readyLevel);
+    readyLevel = round(min(((float)millis() - (float)timer) / totalTime, 1000) / 10);
+    // Notify about current status
+    sendSerialMessage();
+    // Check if drink is ready
     if (!atLeastOnePumpOn()) {
-      isTapping = false;  
-      Serial.println("DRINK READY!!!");
+      isTapping = false;
+      Serial.println("{\"msg\" : \"drink ready\"}");
     }
     // Check if any pump should stop
     checkPumps();
   }
 }
 
-void checkPumps() {
-  long int elapsedTime = (millis()-timer);
+//========================== METHODS ==============================================//
 
-  if((P1*1000) < elapsedTime){
-    digitalWrite(pumpPin1, LOW);
-    if(P1on) Serial.println("PUMP 1 OFF!");
-    P1on = false;
+void sendSerialMessage() {
+  Serial.print("{\"progress\" : ");
+  Serial.print((String)readyLevel);
+  Serial.println("}");
+  Serial.print("{\"pumps\" : [");
+  for (int i = 0 ; i < 9 ; i++) {
+    Serial.print(pumpActive[i]);
+    if (i < 8) {
+      Serial.print(", ");
+    }
   }
-    if((P2*1000) < elapsedTime){
-    digitalWrite(pumpPin2, LOW);
-    if(P2on) Serial.println("PUMP 2 OFF!");
-    P2on = false;
-  }
-    if((P3*1000) < elapsedTime){
-    digitalWrite(pumpPin3, LOW);
-    if(P3on) Serial.println("PUMP 3 OFF!");
-    P3on = false;
-  }
-    if((P4*1000) < elapsedTime){
-    digitalWrite(pumpPin4, LOW);
-    if(P4on) Serial.println("PUMP 4 OFF!");
-    P4on = false;
-  }
-    if((P5*1000) < elapsedTime){
-    digitalWrite(pumpPin5, LOW);
-    if(P5on) Serial.println("PUMP 5 OFF!");
-    P5on = false;
-  }
-    if((P6*1000) < elapsedTime){
-    digitalWrite(pumpPin6, LOW);
-    if(P6on) Serial.println("PUMP 6 OFF!");
-    P6on = false;
-  }
-    if((P7*1000) < elapsedTime){
-    digitalWrite(pumpPin7, LOW);
-    if(P7on) Serial.println("PUMP 7 OFF!");
-    P7on = false;
-  }
-    if((P8*1000) < elapsedTime){
-    digitalWrite(pumpPin8, LOW);
-    if(P8on) Serial.println("PUMP 8 OFF!");
-    P8on = false;
-  }
-    if((P9*1000) < elapsedTime){
-    digitalWrite(pumpPin9, LOW);
-    if(P9on) Serial.println("PUMP 9 OFF!");
-    P9on = false;
-  }
-  
+  Serial.println("]}");
 }
 
-boolean atLeastOnePumpOn(){
-  return (P1on || P2on || P3on || P4on || P5on || P6on || P7on || P8on || P9on);
-}
-
-void turnOffAll() {
-  digitalWrite(pumpPin1, LOW);
-  P1on = false;
-  Serial.println("PUMP 1 OFF!");
-  digitalWrite(pumpPin2, LOW);
-  P2on = false;
-  Serial.println("PUMP 2 OFF!");
-  digitalWrite(pumpPin3, LOW);
-  P3on = false;
-  Serial.println("PUMP 3 OFF!");
-  digitalWrite(pumpPin4, LOW);
-  P4on = false;
-  Serial.println("PUMP 4 OFF!");
-  digitalWrite(pumpPin5, LOW);
-  P5on = false;
-  Serial.println("PUMP 5 OFF!");
-  digitalWrite(pumpPin6, LOW);
-  P6on = false;
-  Serial.println("PUMP 6 OFF!");
-  digitalWrite(pumpPin7, LOW);
-  P7on = false;
-  Serial.println("PUMP 7 OFF!");
-  digitalWrite(pumpPin8, LOW);
-  P8on = false;
-  Serial.println("PUMP 8 OFF!");
-  digitalWrite(pumpPin9, LOW);
-  P9on = false;
-  Serial.println("PUMP 9 OFF!");
-}
 
 void initRecepie() {
-  if (P1 > 0) {
-    digitalWrite(pumpPin1, HIGH);
-    P1on = true;
-    Serial.println("PUMP 1 ON!");
+  timer = millis();
+  for (int i = 0 ; i < 9 ; i++) {
+    if (pumpTime[i] > 0) {
+      digitalWrite(pumpPin[i], HIGH);
+      pumpActive[i] = true;
+    } else {
+      digitalWrite(pumpPin[i], LOW);
+      pumpActive[i] = false;
+    }
   }
-  if (P2 > 0) {
-    digitalWrite(pumpPin2, HIGH);
-    P2on = true;
-    Serial.println("PUMP 2 ON!");
-  }
-  if (P3 > 0) {
-    digitalWrite(pumpPin3, HIGH);
-    P3on = true;
-    Serial.println("PUMP 3 ON!");
-  }
-  if (P4 > 0) {
-    digitalWrite(pumpPin4, HIGH);
-    P4on = true;
-    Serial.println("PUMP 4 ON!");
-  }
-  if (P5 > 0) {
-    digitalWrite(pumpPin5, HIGH);
-    P5on = true;
-    Serial.println("PUMP 5 ON!");
-  }
-  if (P6 > 0) {
-    digitalWrite(pumpPin6, HIGH);
-    P6on = true;
-    Serial.println("PUMP 6 ON!");
-  }
-  if (P7 > 0) {
-    digitalWrite(pumpPin7, HIGH);
-    P7on = true;
-    Serial.println("PUMP 7 ON!");
-  }
-  if (P8 > 0) {
-    digitalWrite(pumpPin8, HIGH);
-    P8on = true;
-    Serial.println("PUMP 8 ON!");
-  }
-  if (P9 > 0) {
-    digitalWrite(pumpPin9, HIGH);
-    P9on = true;
-    Serial.println("PUMP 9 ON!");
-  }
+}
 
+
+float getTotalTime() {
+  float maxTime = 0;
+  for (int i = 0 ; i < 9 ; i++) {
+    if (pumpTime[i] > maxTime) {
+      maxTime = (float)pumpTime[i];
+    }
+  }
+  return maxTime;
 }
 
 
@@ -206,32 +102,68 @@ void parseMessage(String msg) {
   DynamicJsonDocument doc(1024);
   JsonObject root = doc.as<JsonObject>();
   DeserializationError error = deserializeJson(doc, msg);
-
   // Parsing.
   if (error) {
-    Serial.print(F("deserializeJson() failed: "));
-    Serial.println(error.c_str());
+    turnOffAll();
+    Serial.print("{\"msg\" : \"invalid format, turning off\"} ");
     return;
   }
-
   // Fetch values.
   const char* msgType = doc["TYPE"];
-  P1 = doc["P1"];
-  P2 = doc["P2"];
-  P3 = doc["P3"];
-  P4 = doc["P4"];
-  P5 = doc["P5"];
-  P6 = doc["P6"];
-  P7 = doc["P7"];
-  P8 = doc["P8"];
-  P9 = doc["P9"];
-
-  timeRemaining = (float)(max(max(max(max(max(max(max(max(P1,P2),P3),P4),P5),P6),P7),P8),P9));
-
- 
-  isTapping = true;
+  if (strcmp(msgType,"MIX") == 0) {
+    pumpTime[0] = doc["P1"];
+    pumpTime[1] = doc["P2"];
+    pumpTime[2] = doc["P3"];
+    pumpTime[3] = doc["P4"];
+    pumpTime[4] = doc["P5"];
+    pumpTime[5] = doc["P6"];
+    pumpTime[6] = doc["P7"];
+    pumpTime[7] = doc["P8"];
+    pumpTime[8] = doc["P9"];
+    totalTime = getTotalTime();
+    isTapping = true;
+    Serial.println("{\"msg\" : \"recepie ok, starting\"}");
+  } else if (strcmp(msgType,"STOP") == 0) {
+    turnOffAll();
+    Serial.println("{\"msg\" : \"aborting recepie\"}");
+  } else {
+    turnOffAll();
+    Serial.println("{\"msg\" : \"unknown command\"}");
+  }
+  // Set status
   newMessageArrived = true;
-  Serial.print("IS TAPPING...");
-  Serial.println(isTapping);
+}
 
+
+void checkPumps() {
+  long int elapsedTime = (millis() - timer);
+  for (int i = 0 ; i < 9 ; i++) {
+    if ((pumpTime[i] * 1000) < elapsedTime) {
+      digitalWrite(pumpPin[i], LOW);
+      pumpActive[i] = false;
+    }
+  }
+}
+
+
+boolean atLeastOnePumpOn() {
+  boolean anyOn = false;
+  for (int i = 0 ; i < 9 ; i++) {
+    if (pumpActive[i]) {
+      anyOn = true;
+      break;
+    }
+  }
+  return anyOn;
+}
+
+
+void turnOffAll() {
+  for (int i = 0 ; i < 9 ; i++) {
+    digitalWrite(pumpPin[i], LOW);
+    pumpActive[i] = false;
+    pumpTime[i] = 0;
+    isTapping = false;
+    totalTime = 0;
+  }
 }
