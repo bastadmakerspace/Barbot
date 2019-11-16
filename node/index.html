@@ -1,0 +1,106 @@
+<html>
+<head>
+	<style>
+		html, body{
+			font-family: Arial;
+			user-select: none;
+			background: #334455;
+		}
+		button{
+			background-color: #C2185B;
+			padding: 3em;
+			margin: 2em;
+			border: 0;
+			border-radius: 8em;
+			outline: none;
+			transition: 2s;
+		}
+		button span{
+			font-size: 3em;
+			color: #ffffff;
+		}
+		button:focus{
+			outline: none;
+		}
+		button:active{
+			background-color: #FC407A;
+			outline: none;
+			transition: 0s;
+		}
+
+		.status{
+			padding: 1em;
+			color: #eeeeee;
+			font-size: 2em;
+			text-align: center;
+		}
+		
+	</style>
+	<script type='text/javascript' src='jquery.min.js'></script>
+	<script type='text/javascript' src='reconnecting-websocket.min.js'></script>
+</head>
+
+<body>
+
+	<div class="menu">
+
+		<button class="btn" data-msg="{ 'TYPE': 'MIX', 'P1': 0, 'P2': 0, 'P3': 3, 'P4': 3, 'P5': 0, 'P6': 0, 'P7': 0, 'P8': 0, 'P9': 5 }"><span>Apelsin/Hallon</span></button>
+		<button class="btn" data-msg="{ 'TYPE': 'MIX', 'P1': 6, 'P2': 0, 'P3': 0, 'P4': 0, 'P5': 0, 'P6': 0, 'P7': 0, 'P8': 0, 'P9': 5 }"><span>Jordgubb</span></button>
+		<button class="btn" data-msg="{ 'TYPE': 'MIX', 'P1': 1, 'P2': 0, 'P3': 1, 'P4': 0, 'P5': 1, 'P6': 0, 'P7': 0, 'P8': 0, 'P9': 5 }"><span>Banan</span></button>
+		<button class="btn" data-msg="{ 'TYPE': 'MIX', 'P1': 0, 'P2': 0, 'P3': 0, 'P4': 0, 'P5': 1, 'P6': 0, 'P7': 1, 'P8': 0, 'P9': 5 }"><span>Citron</span></button>
+		<button class="btn" data-msg="off"><span>OFF</span></button>
+		<div class="status">-</div>
+	</div>
+
+	<script>
+		var reconnect;
+		$( document ).ready(function() {
+			webSocket = new ReconnectingWebSocket('ws://'+window.location.host+':8080', 'stream');
+			webSocket.onopen = function (event) {
+			  console.log("Websocket open"); 
+			  $('.status').text("Ready");
+			 //  if (reconnect){
+			 //  	//Reload
+			 //  	console.log('Reload...');
+				// document.location=document.location;
+			 //  }
+			};
+			webSocket.onclose = function (event) {
+			  console.log("Websocket closed"); 
+			  $('.status').text("Offline");
+			  reconnect = true;
+			};
+			webSocket.onmessage = function (event) {
+			  console.log(event.data);
+			  if (event.data == 'reload'){
+			  		console.log('Reload...');
+			  		$('.status').text("Reloading...");
+					document.location=document.location;
+			  }
+			  else{
+				  $('.status').text(event.data);
+			  }
+			}
+		    $('.menu .btn').on('click', function(e){
+		    	var msg = $(this).data('msg');
+		    	// var data = { 
+		    	// 	mix: mix 
+		    	// };
+	    	    webSocket.send(msg);
+
+				// $.ajax({
+				// 	url: 'send',
+				// 	type: 'POST',
+				// 	data: mix
+				// });
+
+				
+		    });
+
+		    
+		});
+
+	</script>
+</body>
+
+</html>
