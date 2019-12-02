@@ -19,6 +19,8 @@ sudo pip install ino
 #sudo apt-get install python-pip
 #pip2 install ino
 
+# remove ssh warning
+sudo apt purge libpam-chksshpwd
 
 # install python
 pip install pyserial
@@ -31,6 +33,14 @@ npm install
 
 # run on screen
 export DISPLAY=:0.0
+
+# depending on rotation, set /boot/config.txt
+# for 180 inverted screen
+dtoverlay=hyperpixel4
+dtparam=touchscreen-swapped-x-y
+dtparam=touchscreen-inverted-x
+display_rotate=1
+
 
 # check if wifi power management is disabled
 dmesg | grep brcm
